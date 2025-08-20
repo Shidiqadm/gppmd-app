@@ -16,7 +16,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -33,8 +37,24 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsVersion": "11.13.4",
+          "RNMapboxMapsDownloadToken": "sk.REPLACE_WITH_MAPBOX_DOWNLOADS_TOKEN"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Show current location on map."
+        }
       ]
     ],
+    "extra": {
+      "mapboxPublicToken": "pk.REPLACE_WITH_MAPBOX_PUBLIC_TOKEN"
+    },
     "experiments": {
       "typedRoutes": true
     }

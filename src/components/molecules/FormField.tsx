@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Input, Text, Icon } from '../atoms';
+import { Input, Text } from '../atoms';
 
 interface FormFieldProps {
   label: string;
@@ -10,9 +10,6 @@ interface FormFieldProps {
   error?: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-  leftIcon?: keyof typeof Icon;
-  rightIcon?: keyof typeof Icon;
-  onRightIconPress?: () => void;
 }
 
 const FormField: React.FC<FormFieldProps> = ({
@@ -23,9 +20,6 @@ const FormField: React.FC<FormFieldProps> = ({
   error,
   secureTextEntry,
   keyboardType = 'default',
-  leftIcon,
-  rightIcon,
-  onRightIconPress,
 }) => {
   return (
     <View style={styles.container}>
