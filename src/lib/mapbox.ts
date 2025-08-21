@@ -6,21 +6,24 @@ const tokenFromExtra = (Constants?.expoConfig as any)?.extra?.mapboxPublicToken 
 const tokenFromEnv = process.env.EXPO_PUBLIC_MAPBOX_TOKEN as string | undefined;
 const accessToken = tokenFromExtra || tokenFromEnv;
 
-if (!accessToken) {
+// Initialize Mapbox with proper error handling
+if (!accessToken || accessToken.includes('REPLACE_WITH')) {
   // eslint-disable-next-line no-console
   console.warn(
-    '[Mapbox] Public token not set. Set expo.extra.mapboxPublicToken in app.json or EXPO_PUBLIC_MAPBOX_TOKEN in your env.'
+    '[Mapbox] Public token not set or placeholder detected. Please set a valid Mapbox token in app.json or EXPO_PUBLIC_MAPBOX_TOKEN in your env.'
   );
+  // Set a dummy token to prevent crashes during development
+  MapboxGL.setAccessToken('pk.dummy_token_for_development');
 } else {
   MapboxGL.setAccessToken(accessToken);
 }
 
-// Optional: reduce noise
+// Configure Mapbox settings
 try {
   MapboxGL.setTelemetryEnabled(false);
-} catch {}
-
-export const hasAccessToken = !!accessToken;
-export const DefaultStyleURL = MapboxGL.StyleURL.Light;
+  MapboxGL.setConnected(true);
+} catch (error) {
+  console.warn('[Mapbox] Configuration warning:', error);
+}
 
 export default MapboxGL;

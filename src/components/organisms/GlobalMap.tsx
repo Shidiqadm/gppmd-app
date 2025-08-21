@@ -1,84 +1,168 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import MapboxGL from '@app/lib/mapbox';
-import { DefaultStyleURL, hasAccessToken } from '@app/lib/mapbox';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import MapboxGL from '@/src/lib/mapbox';
+import { Region } from '@/src/data/sampleData';
 
-export interface Marker {
-  id: string;
-  coordinate: [number, number]; // [lng, lat]
-  count?: number;
+interface GlobalMapProps {
+  regions: Region[];
+  selectedRegion?: Region | null;
+  onRegionPress?: (region: Region) => void;
+  style?: any;
 }
 
-interface Props {
-  height?: number;
-  center?: [number, number];
-  zoom?: number;
-  markers?: Marker[];
-  onPressMarker?: (id: string) => void;
-}
+export const GlobalMap: React.FC<GlobalMapProps> = ({
+  regions,
+  selectedRegion,
+  onRegionPress,
+  style
+}) => {
+  const mapRef = useRef<MapboxGL.MapView>(null);
+  const cameraRef = useRef<MapboxGL.Camera>(null);
 
-export default function GlobalMap({ height = 220, center = [0, 20], zoom = 1.2, markers = [], onPressMarker }: Props) {
-  const markerViews = useMemo(() => markers, [markers]);
+  useEffect(() => {
+    if (selectedRegion && cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: selectedRegion.coordinates,
+        zoomLevel: selectedRegion.id === 'amr' ? 3 : 4,
+        animationDuration: 1000,
+      });
+    } else if (!selectedRegion && cameraRef.current) {
+      // Reset to global view
+      cameraRef.current.setCamera({
+        centerCoordinate: [0, 20],
+        zoomLevel: 1.5,
+        animationDuration: 1000,
+      });
+    }
+  }, [selectedRegion]);
 
-  if (!hasAccessToken) {
-    return (
-      <View style={[styles.placeholder, { height }]}>
-        <Text style={styles.placeholderTitle}>Mapbox token missing</Text>
-        <Text style={styles.placeholderSub}>Set EXPO_PUBLIC_MAPBOX_TOKEN or expo.extra.mapboxPublicToken</Text>
-      </View>
-    );
-  }
+  const handleRegionPress = (region: Region) => {
+    if (onRegionPress) {
+      onRegionPress(region);
+    }
+  };
+
+  const renderRegionMarkers = () => {
+    return regions.map((region) => (
+      <MapboxGL.PointAnnotation
+        key={region.id}
+        id={region.id}
+        coordinate={region.coordinates}
+        onSelected={() => handleRegionPress(region)}
+      >
+        <View style={[
+          styles.markerContainer,
+          selectedRegion?.id === region.id && styles.selectedMarker
+        ]}>
+          <View style={styles.marker}>
+            <Text style={styles.numberText}>
+              {region.projectCount}
+            </Text>
+          </View>
+        </View>
+      </MapboxGL.PointAnnotation>
+    ));
+  };
+
+  const renderBusinessEntityMarkers = () => {
+    if (!selectedRegion) return null;
+
+    return selectedRegion.businessEntities.map((entity) => (
+      <MapboxGL.PointAnnotation
+        key={entity.id}
+        id={entity.id}
+        coordinate={entity.coordinates}
+      >
+        <View style={styles.entityMarker}>
+          <View style={[styles.entityDot, { 
+            backgroundColor: entity.id === 'callao' ? '#F59E0B' : 
+                           entity.id === 'santos' ? '#10B981' : 
+                           entity.id === 'duke' ? '#EF4444' : '#8B5CF6' 
+          }]} />
+        </View>
+      </MapboxGL.PointAnnotation>
+    ));
+  };
 
   return (
-    <View style={{ height, borderRadius: 12, overflow: 'hidden' }}>
-      <MapboxGL.MapView style={StyleSheet.absoluteFillObject} styleURL={DefaultStyleURL} scaleBarEnabled={false} logoEnabled={false}>
-        <MapboxGL.Camera zoomLevel={zoom} centerCoordinate={center} animationMode="flyTo" />
-        {markerViews.map((m) => (
-          <MapboxGL.PointAnnotation
-            key={m.id}
-            id={m.id}
-            coordinate={m.coordinate}
-            onSelected={() => onPressMarker?.(m.id)}
-          >
-            <View style={styles.bubble}>
-              <Text style={styles.bubbleText}>{m.count ?? 0}</Text>
-            </View>
-          </MapboxGL.PointAnnotation>
-        ))}
+    <View style={[styles.container, style]}>
+      <MapboxGL.MapView
+        ref={mapRef}
+        style={styles.map}
+        styleURL="mapbox://styles/mapbox/light-v11"
+        logoEnabled={false}
+        attributionEnabled={false}
+        compassEnabled={false}
+        scaleBarEnabled={false}
+        rotateEnabled={false}
+        pitchEnabled={false}
+      >
+        <MapboxGL.Camera
+          ref={cameraRef}
+          centerCoordinate={[0, 20]}
+          zoomLevel={1.5}
+        />
+        
+        {renderRegionMarkers()}
+        {renderBusinessEntityMarkers()}
       </MapboxGL.MapView>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  placeholder: {
-    borderRadius: 12,
-    backgroundColor: '#E5EEFF',
+  container: {
+    flex: 1,
+    backgroundColor: '#87CEEB',
+  },
+  map: {
+    flex: 1,
+  },
+  markerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  placeholderTitle: {
-    fontWeight: '800',
-    color: '#1f2937',
+  selectedMarker: {
+    transform: [{ scale: 1.2 }],
   },
-  placeholderSub: {
-    marginTop: 4,
-    color: '#6b7280',
-    fontSize: 12,
-  },
-  bubble: {
-    backgroundColor: '#2D2A6A',
-    borderRadius: 18,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    minWidth: 28,
+  marker: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#4F46E5',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  bubbleText: {
+  numberText: {
     color: 'white',
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  entityMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  entityDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

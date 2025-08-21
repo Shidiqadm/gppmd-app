@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
-import MapboxGL from '@app/lib/mapbox';
+import MapboxGL from '@/src/lib/mapbox';
 
 export default function MapScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
