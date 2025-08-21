@@ -20,4 +20,7 @@ try {
   MapboxGL.setTelemetryEnabled(false);
 } catch {}
 
+export const hasAccessToken = !!accessToken;
+export const DefaultStyleURL = MapboxGL.StyleURL.Light;
+
 export default MapboxGL;

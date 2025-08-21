@@ -1,75 +1,109 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import GlobalMap from '@app/components/organisms/GlobalMap';
+import Chip from '@app/components/molecules/Chip';
+import SegmentedControl from '@app/components/molecules/SegmentedControl';
+import StatsCard from '@app/components/molecules/StatsCard';
+import BarChart from '@app/components/charts/BarChart';
+import DonutChart from '@app/components/charts/DonutChart';
+import { regions, projectPhaseSummary, portfolioSummary, projects } from '@app/data/sample';
+import { useRouter } from 'expo-router';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+type Mode = 'PROJECT' | 'PORTFOLIO';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>('PROJECT');
+
+  const markers = useMemo(
+    () => regions.map((r) => ({ id: r.code, coordinate: r.center, count: r.activeProjects })),
+    []
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <ScrollView contentContainerStyle={styles.container}>
+      <GlobalMap
+        height={240}
+        center={[10, 20]}
+        zoom={1.3}
+        markers={markers}
+        onPressMarker={(id) => router.push(`/region/${id}`)}
+      />
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: -24 }} contentContainerStyle={styles.chips}>
+        {regions.map((r) => (
+          <Chip key={r.code} label={r.code} value={String(r.activeProjects)} onPress={() => router.push(`/region/${r.code}`)} />
+        ))}
+      </ScrollView>
+
+      <View style={styles.card}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Group {mode === 'PROJECT' ? 'Projects' : 'Portfolio'}</Text>
+          <SegmentedControl
+            options={[{ label: 'PROJECT', value: 'PROJECT' }, { label: 'PORTFOLIO', value: 'PORTFOLIO' }]}
+            value={mode}
+            onChange={(v) => setMode(v)}
+          />
+        </View>
+
+        {mode === 'PROJECT' ? (
+          <View style={styles.grid}>
+            <StatsCard value={projectPhaseSummary.counts['Pre Projects']} label="Pre Projects" color="#EEF2FF" />
+            <StatsCard value={projectPhaseSummary.counts.Initiating} label="Initiating" color="#FEF3C7" />
+            <StatsCard value={projectPhaseSummary.counts.Planning} label="Planning" color="#FFE9B5" />
+            <StatsCard value={projectPhaseSummary.counts.Executing} label="Executing" color="#D1FAE5" />
+            <StatsCard value={projectPhaseSummary.counts.Closing} label="Closing" color="#FEE2E2" />
+            <StatsCard value={projectPhaseSummary.counts.Closed} label="Closed" color="#E0E7FF" />
+          </View>
+        ) : (
+          <View style={styles.grid2}>
+            <StatsCard value={portfolioSummary.projects} label="Portfolio Projects" color="#2D2A6A" />
+            <StatsCard value={`${portfolioSummary.valueAFE.toLocaleString()} M`} label="Portfolio Value AFE" color="#D1FAE5" />
+          </View>
+        )}
+      </View>
+
+      {mode === 'PORTFOLIO' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Spent Vs Committed (USD)</Text>
+          <DonutChart percent={portfolioSummary.spentPct} />
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Afe by Project</Text>
+        <BarChart
+          data={projects.slice(0, 5).map((p) => ({ label: p.title, value: p.afeAmount }))}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: { padding: 16, gap: 12 },
+  chips: { gap: 8, paddingHorizontal: 4 },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  headerTitle: { fontSize: 16, fontWeight: '800', color: '#1F2937' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  grid2: { flexDirection: 'row', gap: 10 },
+  section: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  sectionTitle: { fontWeight: '800', color: '#1F2937', marginBottom: 8 },
 });
